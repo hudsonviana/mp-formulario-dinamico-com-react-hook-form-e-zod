@@ -4,14 +4,8 @@ import { EyeOffIcon } from "lucide-react";
 import { useHookFormMask } from "use-mask-input";
 import { FieldValues, useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { userRegisterSchema } from "../schema";
-import type { UserRegister } from "../schema";
-import toast from "react-hot-toast";
 
-// https://www.youtube.com/watch?v=H2_yqSFCy4g&t=846s&ab_channel=Codante-Evoluanofront-end
-
-export default function Form() {
+export default function FormReactHookForm() {
   const [isPassVisible, setIsPassVisible] = useState(false);
 
   const {
@@ -19,9 +13,8 @@ export default function Form() {
     handleSubmit,
     setValue,
     setError,
-    reset,
     formState: { isSubmitting, errors },
-  } = useForm<UserRegister>({ resolver: zodResolver(userRegisterSchema) });
+  } = useForm();
 
   const registerWithMask = useHookFormMask(register);
 
@@ -55,19 +48,13 @@ export default function Form() {
     );
 
     const resData = await response.json();
+    console.log(resData);
 
     if (!response.ok) {
       for (const field in resData.errors) {
-        setError(field as keyof UserRegister, {
-          type: "manual",
-          message: resData.errors[field],
-        });
+        setError(field, { type: "manual", message: resData.errors[field] });
       }
-      toast.error("Erro ao cadastrar usuário");
     } else {
-      console.log(resData);
-      toast.success("Usuário cadastrado com sucesso!");
-      reset();
     }
   }
 
@@ -78,10 +65,17 @@ export default function Form() {
         <input
           type="text"
           id="name"
-          {...register("name")}
+          {...register("name", {
+            required: "O Campo nome é obrigatório",
+            maxLength: {
+              value: 200,
+              message: "O nome deve ter no máximo 200 caracteres",
+            },
+          })}
           autoComplete="new-password"
         />
 
+        {/* {errors.name?.message as string} */}
         <p className="text-xs text-red-400 mt-1">
           <ErrorMessage errors={errors} name="name" />
         </p>
@@ -92,7 +86,7 @@ export default function Form() {
           className=""
           type="text"
           id="email"
-          {...register("email")}
+          {...register("email", { required: "O Email é obrigatório" })}
           autoComplete="new-password"
         />
 
@@ -106,8 +100,13 @@ export default function Form() {
           <input
             type={isPassVisible ? "text" : "password"}
             id="password"
-            {...register("password")}
-            autoComplete="new-password"
+            {...register("password", {
+              required: "A senha é obrigatória",
+              minLength: {
+                value: 8,
+                message: "A senha precisa ter pelo menos 8 caracteres",
+              },
+            })}
           />
           <span className="absolute right-3 top-3">
             <button
@@ -136,8 +135,17 @@ export default function Form() {
           <input
             type={isPassVisible ? "text" : "password"}
             id="password_confirmation"
-            {...register("password_confirmation")}
-            autoComplete="new-password"
+            {...register("password_confirmation", {
+              required: "A confirmação de senha é obrigatória",
+              minLength: {
+                value: 8,
+                message: "A senha deve ter no mínio de 8 caracteres",
+              },
+              validate(value, formValues) {
+                if (value === formValues.password) return true;
+                return "As senhas devem coincidir";
+              },
+            })}
           />
           <span className="absolute right-3 top-3">
             <button
@@ -164,7 +172,14 @@ export default function Form() {
         <input
           type="text"
           id="phone"
-          {...registerWithMask("phone", "(99) 99999-9999")}
+          // ref={withMask("(99) 99999-9999")}
+          {...registerWithMask("phone", "(99) 99999-9999", {
+            required: "O campo telefone é obrigatório",
+            pattern: {
+              value: /^\(\d{2}\)\s\d{5}-\d{4}$/,
+              message: "Telefone inválido",
+            },
+          })}
           autoComplete="new-password"
         />
 
@@ -177,7 +192,14 @@ export default function Form() {
         <input
           type="text"
           id="cpf"
-          {...registerWithMask("cpf", "999.999.999-99")}
+          // ref={withMask("999.999.999-99")}
+          {...registerWithMask("cpf", "999.999.999-99", {
+            required: "O campo CPF é obrigatório",
+            pattern: {
+              value: /^\d{3}\.\d{3}\.\d{3}-\d{2}$/,
+              message: "CPF inválido",
+            },
+          })}
           autoComplete="new-password"
         />
 
@@ -190,7 +212,14 @@ export default function Form() {
         <input
           type="text"
           id="zipcode"
-          {...registerWithMask("zipcode", "99999-999")}
+          // ref={withMask("99999-999")}
+          {...registerWithMask("zipcode", "99999-999", {
+            required: "O campo CEP é obrigatório",
+            pattern: {
+              value: /^\d{5}-\d{3}$/,
+              message: "CEP inválido",
+            },
+          })}
           onBlur={handleZipcodeBlur}
           autoComplete="new-password"
         />
@@ -206,6 +235,7 @@ export default function Form() {
           type="text"
           id="address"
           {...register("address")}
+          // value={address.street}
           disabled
         />
       </div>
@@ -219,12 +249,15 @@ export default function Form() {
           disabled
         />
       </div>
+      {/* terms and conditions input */}
       <div className="mb-4">
         <input
           type="checkbox"
           id="terms"
           className="mr-2 accent-slate-500"
-          {...register("terms")}
+          {...register("terms", {
+            required: "Os termos e condições devem ser aceitos",
+          })}
         />
         <label
           className="text-sm  font-light text-slate-500 mb-1 inline"
